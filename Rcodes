@@ -1,0 +1,1622 @@
+##################Untiled possibly Mchine#################
+#Import Library
+require(e1071) #Contains the SVM 
+Train <- read.csv(file.choose())
+Test <- read.csv(file.choose())
+# there are various options associated with SVM training; like changing kernel, gamma and C value.
+
+# create model
+model <- svm(Target~Predictor1+Predictor2+Predictor3,data=Train,kernel='linear',gamma=0.2,cost=100)
+
+#Predict Output
+preds <- predict(model,Test)
+table(preds)
+library(e1071)
+library(rpart)
+data(Glass, package="mlbench")
+names(Glass)
+## split data into a train and test set
+index     <- 1:nrow(Glass)
+testindex <- sample(index, trunc(length(index)/3))
+testset   <- Glass[testindex,]
+trainset  <- Glass[-testindex,]
+svm.model <- svm(Type ~ ., data = trainset, cost = 100, gamma = 1)
+svm.pred  <- predict(svm.model, testset[,-10])
+rpart.model <- rpart(Type ~ ., data = trainset)
+rpart.pred  <- predict(rpart.model, testset[,-10], type = "class")
+table(pred = svm.pred, true = testset[,10])
+
+## compute rpart confusion matrix 
+table(pred = rpart.pred, true = testset[,10])
+
+##########################Funded cases comp BA#############################
+############################Comparison With New Data BA_new###########################################
+setwd("/home/anand/Documents/GSYS/BA comparsion old and High priorty 31102017/Final Data for the mail 29112017/ROC and GINI Forfunded cases only")
+data=read.csv("funded.csv")
+data=data.frame(data)
+names(data)
+
+
+## BA_new
+library(Deducer)
+model1= glm(RR_cat ~ BA_new.1 ,data = data, family = binomial("logit") )
+data$pred1=predict(model1, data= data, type = "response")
+data$RRcat_predbanew = ifelse(data$pred1>0.5,1,0)
+
+summary(model1)
+rocplot(model1)
+
+##BAUW
+library(Deducer)
+model2= glm(RR_cat ~ BA_uw.1 ,data = data, family = binomial("logit") )
+data$pred2=predict(model2, data= data, type = "response")
+data$RRcat_predbauw = ifelse(data$pred1>0.5,1,0)
+
+summary(model2)
+rocplot(model2)
+
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(data, file = "datafundedbanew.xlsx" , table_names = "DatafundednewBA")
+
+###########################Lorenz###############################
+## Load and attach income (and metadata) set from Ilocos, Philippines
+library(ineq)
+data(Ilocos)
+attach(Ilocos)
+## extract and rescale income for the provinces "Pangasinan" und "La Union"
+income.p <- income[province=="Pangasinan"]/10000
+income.u <- income[province=="La Union"]/10000
+## compute the Lorenz curves
+Lc.p <- Lc(income.p)
+Lc.u <- Lc(income.u)
+## it can be seen the the inequality in La Union is higher than in
+## Pangasinan because the respective Lorenz curve takes smaller values.
+plot(Lc.p)
+
+lines(Lc.u, col=2)
+## the picture becomes even clearer with generalized Lorenz curves
+plot(Lc.p, general=TRUE)
+lines(Lc.u, general=TRUE, col=2)
+## inequality measures emphasize these results, e.g. Atkinson's measure
+ineq(income.p, type="Atkinson")
+ineq(income.u, type="Atkinson")
+## or Theil's entropy measure
+ineq(income.p, type="Theil", parameter=0)
+ineq(income.u, type="Theil", parameter=0)
+##########################Reject inference################
+#########Getting Data##########
+setwd("/home/anand/Documents/BA score reject inference 23082017/attachments")
+data=read.csv("data.csv")
+df=data.frame(data)
+df1=df
+data11=df
+####data2=na.omit(data11)
+
+##Getting Column Index
+colnames(data11)
+
+###Subset of Data
+data123 = data11[, c(5,9,10,11,12,13,15,16,18,20)]
+
+
+### Checking Missing Values in Dataframe ###
+
+table(sapply(merged.df$RR_cat, function(x) sum(is.na(x))))
+table(merged.df$RR_cat)
+sapply(df.train, function(x) sum(is.na(x)))
+sapply(df.test, function(x) sum(is.na(x)))
+
+
+### Headers of coulumn ###
+head(data123)
+str(data123)
+###For Backtesting
+newdata <- data123[1:500,]
+
+
+###Take a random sample of size 50 from a dataset mydata 
+###Sample without replacement
+back_testing <- data123[sample(1:nrow(data123), 500,
+                          replace=FALSE),]
+
+#############Seed setting to replicate the results#########
+set.seed(123)
+require(caTools)
+split <- sample.split(data123$RR_cat, SplitRatio = 0.70)
+
+###### Dividing into Test and Training set###########
+
+df.train <- subset(df, split == TRUE)
+df.test <- subset(df, split == FALSE)
+
+###SMOTE###
+print(table(data11$RR_cat))
+print(prop.table(table(data11$RR_cat)))
+
+###LETS SMOKE
+library(DMwR)
+df.train$RR_cat <- as.factor(df.train$RR_cat)
+df.train <- SMOTE(RR_cat ~ ., df.train, perc.over = 100, perc.under=200)
+df.train$RR_cat <- as.numeric(df.train$RR_cat)
+print(table(df.train$RR_cat))
+library(car)
+df.train$RR_cat<-recode(df.train$RR_cat,"1=0")
+df.train$RR_cat<-recode(df.train$RR_cat,"2=1")
+
+  ##################################################Logistic Regression###############################################
+
+##### Sub Logistic Regression #####
+model1= glm(RR_cat~BA_uw+pcs_uw+dtiratio.At_uw+aob_trt+indrisk.At_uw+cashmargin.At_uw+anurevenue_trt+nsf.At_uw+repymtrisk.At_uw,data = df.train, family = binomial(link= "logit"))
+summary(model1)
+
+###Predicting the test data 
+df.test$predicted.risk = predict(model1, newdata=df.test, type="response")
+df.train$predicted.risk = predict(model1, newdata = df.train , type = "response")
+
+###Testing accuracy
+table(df.test$RR_cat, as.numeric(df.test$predicted.risk >= 0.5))
+table(df.train$RR_cat, as.numeric(df.train$predicted.risk >= 0.5))
+
+###AUC and ROC
+library(ROCR)
+pred = prediction(df.test$predicted.risk, df.test$RR_cat)
+as.numeric(performance(pred, "auc")@y.values)
+
+pred1 = prediction(df.train$predicted.risk, df.train$RR_cat)
+as.numeric(performance(pred1, "auc")@y.values)
+
+# Make predictions on training set
+predict$df.train = predict(model1, type="response")
+
+# Prediction function
+ROCRpred = prediction(predictTrain, df.train$RR_cat)
+
+# Performance function
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+
+# Plot ROC curve
+plot(ROCRperf)
+
+##Saving the Model to a file 
+save(file="modelfile",model1)
+
+##Loading the file
+load(file="model1")
+
+##Scoring New data for the 
+df.test$pred <- predict(model1, newdata=df.test, type='response')
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+
+###The stepwise function####
+a#########Getting Data##########
+setwd("/home/anand/Documents/BA score reject inference 23082017/attachments")
+data=read.csv("data.csv")
+df=data.frame(data)
+df1=df
+data11=df
+data2=na.omit(data11)
+
+##Getting Column Index
+colnames(data11)
+
+###Subset of Data
+data123 = data11[, c(5,9,10,11,12,13,15,16,18,20)]
+
+
+### Checking Missing Values in Dataframe ###
+sapply(df, function(x) sum(is.na(x)))
+##sapply(df.train, function(x) sum(is.na(x)))
+##sapply(df.test, function(x) sum(is.na(x)))
+
+
+### Headers of coulumn ###
+head(data123)
+str(data123)
+
+
+#############Seed setting to replicate the results#########
+set.seed(123)
+require(caTools)
+split <- sample.split(data123$RR_cat, SplitRatio = 0.70)
+
+###### Dividing into Test and Training set###########
+
+df.train <- subset(df, split == TRUE)
+df.test <- subset(df, split == FALSE)
+
+###SMOTE###
+print(table(data11$RR_cat))
+print(prop.table(table(data11$RR_cat)))
+
+###LETS SMOKE
+library(DMwR)
+df.train$RR_cat <- as.factor(df.train$RR_cat)
+df.train <- SMOTE(RR_cat ~ ., df.train, perc.over = 100, perc.under=200)
+df.train$RR_cat <- as.numeric(df.train$RR_cat)
+print(table(df.train$RR_cat))
+library(car)
+df.train$RR_cat<-recode(df.train$RR_cat,"1=0")
+df.train$RR_cat<-recode(df.train$RR_cat,"2=1")
+
+##################################################Logistic Regression###############################################
+
+##### Sub Logistic Regression #####
+model1= glm(RR_cat~BA_uw+pcs_uw+dtiratio.At_uw+aob_trt+indrisk.At_uw+cashmargin.At_uw+anurevenue_trt+nsf.At_uw+repymtrisk.At_uw,data = df.train, family = binomial(link= "logit"))
+forwards = step(model1)
+summary(model1)
+
+###Predicting the test data 
+df.test$predicted.risk = predict(model1, newdata=df.test, type="response")
+df.train$predicted.risk = predict(model1, newdata = df.train , type = "response")
+
+###Testing accuracy
+table(df.test$RR_cat, as.numeric(df.test$predicted.risk >= 0.5))
+table(df.train$RR_cat, as.numeric(df.train$predicted.risk >= 0.5))
+
+###AUC and ROC
+library(ROCR)
+pred1 = prediction(df.train$predicted.risk, df.train$RR_cat)
+as.numeric(performance(pred1, "auc")@y.values)
+
+
+pred = prediction(df.test$predicted.risk, df.test$RR_cat)
+as.numeric(performance(pred, "auc")@y.values)
+
+################################################################################################################
+# Make predictions on training set
+predict$df.train = predict(model1, type="response")
+
+# Prediction function
+##ROCRpred = prediction(predictTrain, df.train$RR_cat)
+
+# Performance function
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+
+# Plot ROC curve
+plot(ROCRperf)
+#################################################################################################################
+##Saving the Model to a file 
+save(file="model1",model1)
+
+##Loading the file
+load(file="model1")
+
+###Loading new data for scoring 
+setwd("/home/anand/Documents/BA score reject inference 23082017/attachments")
+rejecteddata= read.csv("Rejected cases.csv")
+
+##Scoring New data for the 
+rejecteddata$pred <- predict(model1, newdata=rejecteddata, type='response')
+typeof(rejecteddata$pred)
+rejecteddata$pred<-recode(rejecteddata$pred,"NA"== ".")
+###Making nonmissing data
+sum(is.na(rejecteddata$pred))
+rejectdata1=rejecteddata[!is.na(rejecteddata$pred),]
+#library(plyr)
+#revalue(rejecteddata$pred,  c("NA"=.))
+#rejecteddata$pred <- replace(rejecteddata$pred, is.na(x$a), 0)
+
+#rejecteddata$RR_cat = ifelse(rejecteddata$pred = NA,2," ")
+rejecteddata$RR_cat = ifelse(rejecteddata$pred>0.5,1,0)
+table(rejecteddata$RR_cat)
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(rejectdata1, file = "rejecteddata1.xlsx", table_names = "RejectData")
+
+###Getting the merged data to rerun Logistic
+setwd("/home/anand/Documents/BA score reject inference 23082017/attachments")
+data=read.csv("mergeddata.csv")
+merged.df=data.frame(data)
+names(merged.df)
+library(Deducer)
+modelmerged= glm(RR_cat ~ pcs_uw + dtiratio.At_uw + aob_trt + BA_uw + operatingexp_trt + corprisk.At_uw + indrisk.At_uw + cashmargin.At_uw + anurevenue_trt + nsf.At_uw + repymtrisk.At_uw, data = merged.df , family = binomial("logit") )
+forwards= step(modelmerged)
+summary(modelmerged)
+rocplot(modelmerged)
+typeof(merged.df$RR_cat)
+###Exporting the model for scoring
+##Saving the Model to a file 
+save(file="modelmerged",modelmerged)
+
+##Loading the file
+load(file="modelmerged")
+
+####BACKTESTING
+##Scoring New data for the 
+rejecteddata$pred <- predict(model1, newdata=rejecteddata, type='response')
+typeof(rejecteddata$pred)
+rejecteddata$pred<-recode(rejecteddata$pred,"NA"== ".")
+
+
+
+###Model Performence
+###Prediction
+merged.df$predicted.risk = predict(modelmerged, newdata=merged.df, type="response")
+###ANOVA
+anova(modelmerged, test="Chisq")
+##################
+
+merged.df$RR_cat<-recode(merged.df$RR_cat,"0=1")
+merged.df$RR_cat<-recode(merged.df$RR_cat,"1=2")
+#################################################################################################
+library(caret)
+# define training control
+train_control<- trainControl(method="cv", number=10)
+# train the model 
+model<- train(RR_cat ~ pcs_uw + dtiratio.At_uw + aob_trt + BA_uw + operatingexp_trt + corprisk.At_uw + indrisk.At_uw + cashmargin.At_uw + anurevenue_trt + nsf.At_uw + repymtrisk.At_uw, data=merged.df, trControl=train_control, method="glm", na.action = na.exclude ,family=binomial(link = "logit"))
+# print cv scores
+summary(model)
+
+table(merged.df$RR_cat)
+#################################################################################################
+###psudeo R squared
+library(pscl)
+pR2(modelmerged)
+###AUC and ROC
+library(ROCR)
+pred11 = prediction(merged.df$predicted.risk, merged.df$RR_cat)
+as.numeric(performance(pred11, "auc")@y.values)
+
+###Accuracy
+table(merged.df$RR_cat, as.numeric(merged.df$predicted.risk >= 0.5))
+
+
+ 
+
+
+
+
+
+
+
+
+#####################################################################################################
+#############################Getting data for Non-missing cases######################################
+#####################################################################################################
+
+
+################################################################################################################
+sum(is.na(rejecteddata$pred))
+
+if(rejecteddata$pred>0.0 && rejecteddata$pred<=0.5){
+  rejecteddata$pred=0
+  
+}else if(rejecteddata$pred>0.5 && rejecteddata$pred<=1.0){
+  rejecteddata$pred=1
+  
+}else if(rejecteddata$pred=="NA"){
+  rejecteddata$pred=3
+}
+
+
+#############################Logistic Reject BA Comp###################################
+setwd("/home/anand/Documents/GSYS/BA comparsion old and High priorty 31102017/fwdhighpriorityformeetingtomorrow/Final Comparison")
+olddatauwba=read.csv("olddatauwba.csv")
+olddatauwba=data.frame(olddatauwba)
+names(olddatauwba)
+
+
+###datauwba BA_uw
+library(Deducer)
+modelolddatauw= glm(RR_cat ~ BA_uw, data = olddatauwba , family = binomial("logit") )
+
+summary(modelolddatauw)
+rocplot(modelolddatauw)
+olddatauwba$pred3 = predict.glm(modelolddatauw, olddatauwba, type = c("response"))
+olddatauwba$RR_pred <- ifelse(modelolddatauw$pred3 < 0.5, 0, 1)
+table(olddatauwba$RR_pred)
+library(MLmetrics)
+data(cars)
+data(olddatauwba)
+regmodel1 <- glm(formula = RR_cat ~ Ba_new,
+              family = binomial(link = "logit"), data = olddatauwba)
+olddatauwba$pred <- ifelse(regmodel1$fitted.values < 0.5, 0, 1)
+GainAUC(y_pred = regmodel1$fitted.values, y_true = olddatauwba$RR_cat)
+Accuracy(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat)
+AUC(y_pred= regmodel1$fitted.values, y_true= olddatauwba$RR_cat)
+typeof(olddatauwba$pred)
+olddatauwba$pred <- as.numeric(olddatauwba$pred)
+olddatauwba$RR_cat <- as.numeric(olddatauwba$RR_cat)
+ConfusionMatrix(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat)
+#F1_Score(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat, positive = "0")
+#F1_Score(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat, positive = "1")
+
+
+##Scoring New data for the 
+olddatauwba$pred2 <- predict(regmodel1, newdata=olddatauwba, type='response')
+typeof(olddatauwba$pred2)
+rejecteddata$pred<-recode(rejecteddata$pred,"NA"== ".")
+table(olddatauwba$pred2)
+
+
+###Model Performence
+###Prediction
+merged.df$predicted.risk = predict(modelmerged, newdata=merged.df, type="response")
+###ANOVA
+anova(modelmerged, test="Chisq")
+
+
+#####library(ineq)
+ineq(olddatauwba,type="Gini")
+plot(Lc(olddatauwba))
+plot(Lc(olddatauwba),col="darkred",lwd=2)
+
+
+library(reldist)
+gini(modelolddatauw)
+###datauwba BA_new
+library(Deducer)
+modelolddataba= glm(RR_cat ~ Ba_new, data = olddatauwba , family = binomial("logit") )
+
+summary(modelolddataba)
+rocplot(modelolddataba)
+
+
+
+
+###SMOTE###
+print(table(olddatauwba$RR_cat))
+print(prop.table(table(olddatauwba$RR_cat)))
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+olddatauwba$RR_cat <- as.factor(olddatauwba$RR_cat)
+olddatauwbasmote= SMOTE(RR_cat ~ ., olddatauwba, perc.over = 100, perc.under=200)
+olddatauwbasmote$RR_cat <- as.numeric(olddatauwbasmote$RR_cat)
+print(table(olddatauwbasmote$RR_cat))
+library(car)
+olddatauwbasmote$RR_cat<-recode(olddatauwbasmote$RR_cat,"1=0")
+olddatauwbasmote$RR_cat<-recode(olddatauwbasmote$RR_cat,"2=1")
+
+###SMOTE Old BA_uw
+library(Deducer)
+modelcompsmoteuw= glm(RR_cat ~ BA_uw ,data = olddatauwbasmote , family = binomial("logit") )
+
+summary(modelcompsmoteuw)
+rocplot(modelcompsmoteuw)
+
+library(Deducer)
+modelcompsmoteba= glm(RR_cat ~ Ba_new ,data = olddatauwbasmote , family = binomial("logit") )
+
+summary(modelcompsmoteba)
+rocplot(modelcompsmoteba)
+
+#################Comaprison With New data BA_uw#################
+setwd("/home/anand/Documents/GSYS/BA comparsion old and High priorty 31102017/fwdhighpriorityformeetingtomorrow/Final Comparison")
+newdatauw=read.csv("newdatauw.csv")
+newdatauw=data.frame(newdatauw)
+names(newdatauw)
+
+
+###Newdatauw BA_uw
+library(Deducer)
+modelnewdatauw= glm(RR_cat ~ BA_uw, data = newdatauw , family = binomial("logit") )
+
+summary(modelnewdatauw)
+rocplot(modelnewdatauw)
+
+###SMOTE###
+print(table(newdatauw$RR_cat))
+print(prop.table(table(newdatauw$RR_cat)))
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+newdatauw$RR_cat <- as.factor(newdatauw$RR_cat)
+newdatauwsmote= SMOTE(RR_cat ~ ., newdatauw, perc.over = 100, perc.under=200)
+newdatauwsmote$RR_cat <- as.numeric(newdatauwsmote$RR_cat)
+print(table(newdatauwsmote$RR_cat))
+library(car)
+newdatauwsmote$RR_cat<-recode(newdatauwsmote$RR_cat,"1=0")
+newdatauwsmote$RR_cat<-recode(newdatauwsmote$RR_cat,"2=1")
+
+###SMOTE NEWDATA BA_uw
+library(Deducer)
+modelnewdatasmoteuw= glm(RR_cat ~ BA_uw ,data = newdatauwsmote , family = binomial("logit") )
+
+summary(modelnewdatasmoteuw)
+rocplot(modelnewdatasmoteuw)
+
+############################Comparison With New Data BA_new###########################################
+setwd("/home/anand/Documents/GSYS/BA comparsion old and High priorty 31102017/fwdhighpriorityformeetingtomorrow/Final Comparison")
+newdataba=read.csv("newdataba.csv")
+newdataba=data.frame(newdataba)
+names(newdataba)
+
+
+###newdataba BA_new
+library(Deducer)
+modelnewdataba= glm(RR_cat ~ BA_new, data = newdataba , family = binomial("logit") )
+
+summary(modelnewdataba)
+rocplot(modelnewdataba)
+
+###SMOTE###
+print(table(newdataba$RR_cat))
+print(prop.table(table(newdataba$RR_cat)))
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+newdataba$RR_cat <- as.factor(newdataba$RR_cat)
+newdatabasmote= SMOTE(RR_cat ~ ., newdataba, perc.over = 100, perc.under=200)
+newdatabasmote$RR_cat <- as.numeric(newdatabasmote$RR_cat)
+print(table(newdatabasmote$RR_cat))
+library(car)
+newdatabasmote$RR_cat<-recode(newdatabasmote$RR_cat,"1=0")
+newdatabasmote$RR_cat<-recode(newdatabasmote$RR_cat,"2=1")
+
+###SMOTE NEW DATA BA_new
+library(Deducer)
+modelnewdatasmoteba= glm(RR_cat ~ BA_new ,data = newdatabasmote , family = binomial("logit") )
+
+summary(modelnewdatasmoteba)
+rocplot(modelnewdatasmoteba)
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(newdatabasmote, file = "datawithsmotenewba.xlsx" , table_names = "DatawithsmotenewBA")
+
+
+#################################Mode###################################
+setwd("/home/anand/Documents/GSYS/BA score recalculation/finaldatakaran/attachments/withsomte")
+data1=read.csv("datasetformergingtherejectedcases.csv")
+data.df=data.frame(data1)
+names(data.df)
+
+###SMOTE###
+print(table(data1$rr_cat))
+print(prop.table(table(data1$rr_cat)))
+
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+data1$rr_cat <- as.factor(data1$rr_cat)
+data1smote= SMOTE(rr_cat ~ ., data1, perc.over = 100, perc.under=200)
+data1smote$rr_cat <- as.numeric(data1smote$rr_cat)
+print(table(data1smote$rr_cat))
+library(car)
+data1smote$rr_cat<-recode(data1smote$rr_cat,"1=0")
+data1smote$rr_cat<-recode(data1smote$rr_cat,"2=1")
+names(data1smote)
+data1smote$avgnsfuw = as.numeric(data1smote$avgnsfuw)
+data.df$avgnsfuw = as.numeric(data.df$avgnsfuw)
+###full dataset without smote
+library(Deducer)
+model2= glm(rr_cat ~ pcs + dtiuw + aobuw + cruw +  cmuw + avgnsfuw + aruw + rrriskuw, data = data1smote , family = binomial("logit") )
+summary(model2)
+rocplot(model2)
+data.df$pred1= predict.glm(model2, newdata = data.df, type = "response")
+data.df$RR_pred <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$RR_pred)
+table(data.df$rr_cat, data.df$RR_pred)
+typeof(data.df$avgnsfuw)
+str(data.df)
+###Exporting the model
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(data.df, file = "dataformodelwithsmote.xlsx", table_names = "Dataformodelwithsmote")
+
+
+##Saving the Model to a file 
+save(file="model2",model2)
+
+##Loading the file
+load(file="model2")
+
+###Loading the rejected cases
+setwd("/home/anand/Documents/GSYS/BA score recalculation/finaldatakaran/attachments/withsomte")
+rejecteddata=read.csv("rejected cases  670.csv")
+rejecteddata.df = data.frame(rejecteddata)
+str(rejecteddata.df)
+rejecteddata.df$cruw= as.factor(rejecteddata.df$cruw)
+rejecteddata.df$rrriskuw= as.factor(rejecteddata.df$rrriskuw)
+
+### Scoring the rejected cases
+library(Deducer)
+load(file="model2")
+rejecteddata.df$pred2 <- predict(model2, newdata=rejecteddata.df, type='response')
+typeof(rejecteddata$pred)
+
+sum(is.na(rejecteddata.df$pred2))
+rejectdata1.df=rejecteddata.df[!is.na(rejecteddata.df$pred2),]
+
+sum(is.na(rejectdata1.df$pred2))
+
+rejectdata1.df$rr_cat = ifelse(rejectdata1.df$pred2>0.5,1,0)
+table(rejectdata1.df$rr_cat)
+
+
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(rejectdata1.df, file = "rejecteddata1.xlsx", table_names = "RejectData")
+
+###Exporting funded scored data
+excel_export(data.df, file = "fundeddata.xlsx", table_names = "fundedData")
+
+###Getting merged data for re-traing the logistic regresstion
+setwd("/home/anand/Documents/GSYS/BA score recalculation/finaldatakaran/attachments/withsomte")
+data=read.csv("merged.csv")
+merged.df=data.frame(data)
+names(merged.df)
+library(Deducer)
+modelmerged= glm(rr_cat ~ pcs + dtiuw + aobuw + cruw + cmuw + aruw + avgnsfuw + rrriskuw, data = merged.df , family = binomial("logit") )
+forwards= step(modelmerged)
+summary(modelmerged)
+rocplot(modelmerged)
+merged.df$pred3 <- predict(modelmerged, newdata=merged.df, type='response')
+merged.df$RR_catpred1 = ifelse(merged.df$pred3>0.5,1,0)
+table(merged.df$RR_catpred1)
+table(merged.df$rr_cat, merged.df$RR_catpred1)
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(merged.df, file = "mergeddatawithresults.xlsx", table_names = "Mergeddata")
+
+typeof(merged.df$RR_cat)
+###Exporting the model for scoring
+##Saving the Model to a file 
+save(file="modelmerged",modelmerged)
+
+##Loading the file
+load(file="modelmerged")
+
+#########################DPD Model################################
+setwd("/home/anand/Documents/DPD wise BA scorecard/dpdbinnedandwoe")
+data1=read.csv("dataformodel.csv")
+data.df=data.frame(data1)
+names(data.df)
+
+set.seed(123)
+library(DMwR)
+data.df$dpd <- as.factor(data.df$dpd)
+data1smote= SMOTE(dpd ~ ., data.df, perc.over = 100, perc.under=200)
+data1smote$dpd <- as.numeric(data1smote$dpd)
+print(table(data1smote$dpd))
+library(car)
+data1smote$dpd<-recode(data1smote$dpd,"1=0")
+data1smote$dpd<-recode(data1smote$dpd,"2=1")
+names(data1smote)
+###With smote
+library(Deducer)
+model1= glm(dpd ~ pcswoe + dtiwoe + aobwoe + crwoe +  cmwoe + avgnsfwoe + aruw + rrriskwoe, data = data1smote, family = binomial("logit") )
+summary(model1)
+rocplot(model1)
+data1smote$pred= predict.glm(model1, newdata = data1smote, type = "response")
+data1smote$dpd_pred <- ifelse(data1smote$pred < 0.5, 0, 1)
+table(data1smote$dpd_pred)
+table(data1smote$dpd, data1smote$dpd_pred)
+
+##Predicting for the full dataset
+data.df$pred1= predict.glm(model1, newdata = data.df, type = "response")
+data.df$dpd_pred1 <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$dpd_pred1)
+table(data.df$dpd, data.df$dpd_pred1)
+typeof(data.df$avgnsfuw)
+str(data.df)
+
+
+###Full model without smote
+library(Deducer)
+model2= glm(dpd ~ pcswoe + dtiwoe + aobwoe + crwoe +  cmwoe + avgnsfwoe + aruw + rrriskwoe, data = data.df, family = binomial("logit") )
+summary(model2)
+rocplot(model2)
+data.df$pred2= predict.glm(model2, newdata = data.df, type = "response")
+data.df$dpd_pred2 <- ifelse(data.df$pred2 < 0.5, 0, 1)
+table(data.df$dpd_pred2)
+table(data.df$dpd, data.df$dpd_pred2)
+
+
+##Saving the Model to a file 
+save(file="model1",model1)
+
+###Loading new data for scoring 
+setwd("/home/anand/Documents/DPD wise BA scorecard/dpdbinnedandwoe")
+rejecteddata= read.csv("rejectedcasesformodel.csv")
+
+##Loading the file
+load(file="model1")
+
+##Scoring New data for the 
+rejecteddata$pred3 <- predict(model1, newdata=rejecteddata, type='response')
+typeof(rejecteddata$pred3)
+rejecteddata$pred<-recode(rejecteddata$pred,"NA"== ".")
+summary(rejecteddata$pred3)
+
+rejecteddata$dpd_pred3 = ifelse(rejecteddata$pred3>0.5,1,0)
+table(rejecteddata$dpd_pred3)
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(rejecteddata, file = "rejecteddata1.xlsx", table_names = "RejectData")
+
+###Exporting the funded scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(data.df, file = "fundeddata1.xlsx", table_names = "fundedData")
+
+###Reject inference
+setwd("/home/anand/Documents/DPD wise BA scorecard/dpdbinnedandwoe")
+merged=read.csv("merged.csv")
+merged.df=data.frame(merged)
+names(merged.df)
+
+library(Deducer)
+model3= glm(dpd ~ pcswoe + dtiwoe + aobwoe + crwoe +  cmwoe + avgnsfwoe + arwoe + rrriskwoe, data = merged.df, family = binomial("logit") )
+summary(model3)
+rocplot(model3)
+merged.df$pred3= predict.glm(model3, newdata = merged.df, type = "response")
+merged.df$dpd_pred3 <- ifelse(merged.df$pred3 < 0.5, 0, 1)
+table(merged.df$dpd_pred3)
+table(merged.df$dpd, merged.df$dpd_pred3)
+
+###Exporting the funded scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(merged.df, file = "merged.xlsx", table_names = "Merged")
+
+####Comparison between BAuw and BADPD
+
+setwd("/home/anand/Documents/DPD wise BA scorecard/dpdbinnedandwoe")
+datadpd=read.csv("bascoreddata.csv")
+dpd.df=data.frame(datadpd)
+names(dpd.df)
+
+
+###BAuw
+library(Deducer)
+model4= glm(dpd ~ bauw, data = dpd.df, family = binomial("logit") )
+summary(model4)
+rocplot(model4)
+dpd.df$pred4= predict.glm(model4, newdata = dpd.df, type = "response")
+dpd.df$dpd_pred4 <- ifelse(dpd.df$pred4 < 0.5, 0, 1)
+table(dpd.df$dpd_pred4)
+table(dpd.df$dpd, dpd.df$dpd_pred4)
+
+
+
+
+###BAnew
+library(Deducer)
+model5= glm(dpd ~ BA_new, data = dpd.df, family = binomial("logit") )
+summary(model5)
+rocplot(model5)
+dpd.df$pred5= predict.glm(model5, newdata = dpd.df, type = "response")
+dpd.df$dpd_pred5 <- ifelse(dpd.df$pred5 < 0.5, 0, 1)
+table(dpd.df$dpd_pred5)
+table(dpd.df$dpd, dpd.df$dpd_pred5)
+
+##############################################Model New############################################################
+setwd("/home/anand/Documents/GSYS/BA score recalculation/finaldatakaran/attachments")
+data1=read.csv("data.csv")
+data.df=data.frame(data1)
+names(data.df)
+
+
+###datauwba BA_new
+library(Deducer)
+model1= glm(rr_cat~ pcs.woe + dti.woe + aob.woe + crwoe +  cmwoe + avgnsfwoe + arwoe + rrriskwoe  , data = data.df , family = binomial("logit") )
+
+summary(model1)
+rocplot(model1)
+data.df$pred1 = predict.glm(model1, data.df, type = c("response"))
+data.df$RR_pred1 <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$RR_pred1)
+table(data.df$RR_cat, data.df$RR_pred1)
+
+###datauwba BA_new
+library(Deducer)
+model2= glm(rr_cat ~ baatuw, data = data.df , family = binomial("logit") )
+
+summary(model2)
+rocplot(model2)
+data.df$pred2 = predict.glm(model2, data.df, type = c("response"))
+data.df$rr_preduw <- ifelse(data.df$pred2 < 0.5, 0, 1)
+table(data.df$RR_preduw)
+table(data.df$RR_cat, data.df$RR_preduw)
+
+
+
+
+
+
+##########BA_uw
+library(Deducer)
+model2= glm(RR_cat ~ BA_new, data = data.df , family = binomial("logit") )
+
+summary(model2)
+rocplot(model2)
+data.df$pred2 = predict.glm(model2, data.df, type = c("response"))
+data.df$RR_preduw <- ifelse(data.df$pred2 < 0.5, 0, 1)
+table(data.df$RR_preduw)
+table(data.df$RR_cat, data.df$RR_preduw)
+
+
+
+
+library(Deducer)
+model1= glm(RR_cat ~ BA_new, data = data.df , family = binomial("logit") )
+
+summary(model1)
+rocplot(model1)
+data.df$pred1 = predict.glm(model1, data.df, type = c("response"))
+data.df$RR_pred <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$RR_pred)
+
+
+
+
+
+
+
+
+
+
+library(MLmetrics)
+data(cars)
+data(olddatauwba)
+regmodel1 <- glm(formula = RR_cat ~ Ba_new,
+                 family = binomial(link = "logit"), data = olddatauwba)
+olddatauwba$pred <- ifelse(regmodel1$fitted.values < 0.5, 0, 1)
+GainAUC(y_pred = regmodel1$fitted.values, y_true = olddatauwba$RR_cat)
+Accuracy(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat)
+AUC(y_pred= regmodel1$fitted.values, y_true= olddatauwba$RR_cat)
+typeof(olddatauwba$pred)
+olddatauwba$pred <- as.numeric(olddatauwba$pred)
+olddatauwba$RR_cat <- as.numeric(olddatauwba$RR_cat)
+ConfusionMatrix(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat)
+#F1_Score(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat, positive = "0")
+#F1_Score(y_pred = olddatauwba$pred, y_true = olddatauwba$RR_cat, positive = "1")
+
+
+##Scoring New data for the 
+olddatauwba$pred2 <- predict(regmodel1, newdata=olddatauwba, type='response')
+typeof(olddatauwba$pred2)
+rejecteddata$pred<-recode(rejecteddata$pred,"NA"== ".")
+table(olddatauwba$pred2)
+
+
+###Model Performence
+###Prediction
+merged.df$predicted.risk = predict(modelmerged, newdata=merged.df, type="response")
+###ANOVA
+anova(modelmerged, test="Chisq")
+
+
+#####library(ineq)
+ineq(olddatauwba,type="Gini")
+plot(Lc(olddatauwba))
+plot(Lc(olddatauwba),col="darkred",lwd=2)
+
+
+library(reldist)
+gini(modelolddatauw)
+###datauwba BA_new
+library(Deducer)
+modelolddataba= glm(RR_cat ~ Ba_new, data = olddatauwba , family = binomial("logit") )
+
+summary(modelolddataba)
+rocplot(modelolddataba)
+
+
+
+
+###SMOTE###
+print(table(olddatauwba$RR_cat))
+print(prop.table(table(olddatauwba$RR_cat)))
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+olddatauwba$RR_cat <- as.factor(olddatauwba$RR_cat)
+olddatauwbasmote= SMOTE(RR_cat ~ ., olddatauwba, perc.over = 100, perc.under=200)
+olddatauwbasmote$RR_cat <- as.numeric(olddatauwbasmote$RR_cat)
+print(table(olddatauwbasmote$RR_cat))
+library(car)
+olddatauwbasmote$RR_cat<-recode(olddatauwbasmote$RR_cat,"1=0")
+olddatauwbasmote$RR_cat<-recode(olddatauwbasmote$RR_cat,"2=1")
+
+###SMOTE Old BA_uw
+library(Deducer)
+modelcompsmoteuw= glm(RR_cat ~ BA_uw ,data = olddatauwbasmote , family = binomial("logit") )
+
+summary(modelcompsmoteuw)
+rocplot(modelcompsmoteuw)
+
+library(Deducer)
+modelcompsmoteba= glm(RR_cat ~ Ba_new ,data = olddatauwbasmote , family = binomial("logit") )
+
+summary(modelcompsmoteba)
+rocplot(modelcompsmoteba)
+
+#################Comaprison With New data BA_uw#################
+setwd("/home/anand/Documents/GSYS/BA comparsion old and High priorty 31102017/fwdhighpriorityformeetingtomorrow/Final Comparison")
+newdatauw=read.csv("newdatauw.csv")
+newdatauw=data.frame(newdatauw)
+names(newdatauw)
+
+
+###Newdatauw BA_uw
+library(Deducer)
+modelnewdatauw= glm(RR_cat ~ BA_uw, data = newdatauw , family = binomial("logit") )
+
+summary(modelnewdatauw)
+rocplot(modelnewdatauw)
+
+###SMOTE###
+print(table(newdatauw$RR_cat))
+print(prop.table(table(newdatauw$RR_cat)))
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+newdatauw$RR_cat <- as.factor(newdatauw$RR_cat)
+newdatauwsmote= SMOTE(RR_cat ~ ., newdatauw, perc.over = 100, perc.under=200)
+newdatauwsmote$RR_cat <- as.numeric(newdatauwsmote$RR_cat)
+print(table(newdatauwsmote$RR_cat))
+library(car)
+newdatauwsmote$RR_cat<-recode(newdatauwsmote$RR_cat,"1=0")
+newdatauwsmote$RR_cat<-recode(newdatauwsmote$RR_cat,"2=1")
+
+###SMOTE NEWDATA BA_uw
+library(Deducer)
+modelnewdatasmoteuw= glm(RR_cat ~ BA_uw ,data = newdatauwsmote , family = binomial("logit") )
+
+summary(modelnewdatasmoteuw)
+rocplot(modelnewdatasmoteuw)
+
+############################Comparison With New Data BA_new###########################################
+setwd("/home/anand/Documents/GSYS/BA comparsion old and High priorty 31102017/fwdhighpriorityformeetingtomorrow/Final Comparison")
+newdataba=read.csv("newdataba.csv")
+newdataba=data.frame(newdataba)
+names(newdataba)
+
+
+###newdataba BA_new
+library(Deducer)
+modelnewdataba= glm(RR_cat ~ BA_new, data = newdataba , family = binomial("logit") )
+
+summary(modelnewdataba)
+rocplot(modelnewdataba)
+
+###SMOTE###
+print(table(newdataba$RR_cat))
+print(prop.table(table(newdataba$RR_cat)))
+
+###LETS SMOKE
+set.seed(123)
+library(DMwR)
+newdataba$RR_cat <- as.factor(newdataba$RR_cat)
+newdatabasmote= SMOTE(RR_cat ~ ., newdataba, perc.over = 100, perc.under=200)
+newdatabasmote$RR_cat <- as.numeric(newdatabasmote$RR_cat)
+print(table(newdatabasmote$RR_cat))
+library(car)
+newdatabasmote$RR_cat<-recode(newdatabasmote$RR_cat,"1=0")
+newdatabasmote$RR_cat<-recode(newdatabasmote$RR_cat,"2=1")
+
+###SMOTE NEW DATA BA_new
+library(Deducer)
+modelnewdatasmoteba= glm(RR_cat ~ BA_new ,data = newdatabasmote , family = binomial("logit") )
+
+summary(modelnewdatasmoteba)
+rocplot(modelnewdatasmoteba)
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(newdatabasmote, file = "datawithsmotenewba.xlsx" , table_names = "DatawithsmotenewBA")
+
+
+
+
+setwd("/home/anand/Documents/GSYS/BA score recalculation/finaldatakaran/attachments")
+data1=read.csv("data1.csv")
+data.df=data.frame(data1)
+names(data.df)
+
+
+library(Deducer)
+model1= glm(rr_cat~ Ba_new  , data = data.df , family = binomial("logit") )
+
+summary(model1)
+rocplot(model1)
+data.df$pred1 = predict.glm(model1, data.df, type = c("response"))
+data.df$RR_pred <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$RR_pred)
+table(data.df$rr_cat, data.df$RR_pred)
+
+############################PMvD Model####################################
+setwd("/home/anand/Documents/PMvD/pmvdwoeandbinns")
+data1=read.csv("fundedcasesformodel.csv")
+data.df=data.frame(data1)
+names(data.df)
+str(data.df)
+set.seed(123)
+library(DMwR)
+data.df$pmvd <- as.factor(data.df$pmvd)
+data1smote= SMOTE(pmvd~ ., data.df, perc.over = 200, perc.under=150)
+data1smote$pmvd <- as.numeric(data1smote$pmvd)
+print(table(data1smote$pmvd))
+library(car)
+data1smote$pmvd<-recode(data1smote$pmvd,"1=0")
+data1smote$pmvd<-recode(data1smote$pmvd,"2=1")
+names(data1smote)
+###With smote
+library(Deducer)
+model1= glm(pmvd ~ pcswoe + dtiwoe +  aobwoe + crwoe +  cmwoe + arwoe + avgnsfwoe, data = data.df, family = binomial("logit") )
+summary(model1)
+rocplot(model1)
+data1smote$pred= predict.glm(model1, newdata = data1smote, type = "response")
+data1smote$pmvd_pred <- ifelse(data1smote$pred < 0.5, 0, 1)
+table(data1smote$pmvd_pred)
+table(data1smote$pmvd, data1smote$pmvd_pred)
+
+##Predicting for the full dataset
+data.df$pred1= predict.glm(model1, newdata = data.df, type = "response")
+data.df$pmvd_pred1 <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$pmvd_pred1)
+table(data.df$pmvd, data.df$pmvd_pred1)
+str(data.df)
+
+
+###################################################################
+###Retraining the model for the new logistic with newly calculated woe values for the merged dataset
+###################################################################
+setwd("/home/anand/Documents/PMvD/pmvdfinalmergeddataforremodelling")
+data4=read.csv("mergeddatawithrecalculatedwoe.csv")
+data.df4=data.frame(data4)
+names(data.df4)
+str(data.df4)
+
+library(Deducer)
+model4= glm(pmvd ~ pcswoe + dtiwoe +  aobwoe + crwoe +  cmwoe + arwoe + avgnsfwoe, data = data.df4, family = binomial("logit") )
+summary(model4)
+rocplot(model4)
+data.df4$pred4= predict.glm(model4, newdata = data.df4, type = "response")
+data.df4$pmvd_pred4 <- ifelse(data.df4$pred4 < 0.5, 0, 1)
+table(data.df4$pmvd_pred4)
+table(data.df4$pmvd, data.df4$pmvd_pred4)
+
+
+
+##Saving the Model to a file 
+save(file="model4 ",model4)
+
+library(xlsx)
+library(ImportExport)
+excel_export(data.df4, file = "mergedrecalwoemodel.xlsx", table_names = "Scoreddata")
+
+
+########################################################
+BA score vs PCS 
+########################################################
+
+setwd("/home/anand/Documents/PMvD/pmvdfinalmergeddataforremodelling")
+data5=read.csv("mergedfinal.csv")
+data.df5=data.frame(data5)
+data.df5$pmvd = as.factor(data.df5$pmvd)
+names(data.df5)
+str(data.df5)
+
+library(Deducer)
+model5= glm(pmvd ~ pcsuw, data = data.df5, family = binomial("logit") )
+summary(model5)
+rocplot(model5)
+data.df5$pred5= predict.glm(model5, newdata = data.df5, type = "response")
+data.df5$pmvd_pred5 <- ifelse(data.df5$pred5 < 0.5, 0, 1)
+table(data.df5$pmvd_pred5)
+table(data.df5$pmvd, data.df5$pmvd_pred5)
+
+
+setwd("/home/anand/Documents/PMvD/pmvdfinalmergeddataforremodelling")
+data5=read.csv("mergedfinal.csv")
+data.df5=data.frame(data5)
+names(data.df5)
+str(data.df5)
+
+library(Deducer)
+model6= glm(pmvd ~ BA_new, data = data.df5, family = binomial("logit") )
+summary(model6)
+rocplot(model6)
+data.df5$pred6= predict.glm(model6, newdata = data.df5, type = "response")
+data.df5$pmvd_pred6 <- ifelse(data.df5$pred6 < 0.5, 0, 1)
+table(data.df5$pmvd_pred6)
+table(data.df5$pmvd, data.df5$pmvd_pred6)
+
+
+
+
+
+
+
+
+
+
+######Scoring the Vailidation set######
+setwd("/home/anand/Documents/PMvD/pmvdfinalmergeddataforremodelling")
+validationdata= read.csv("mergedvailidationfile.csv")
+data.df7=data.frame(validationdata)
+names(data.df7)
+str(data.df7)
+
+library(Deducer)
+model7= glm(pmvd ~ pcsuw, data = data.df7, family = binomial("logit") )
+summary(model7)
+rocplot(model7)
+data.df7$pred7= predict.glm(model7, newdata = data.df7, type = "response")
+data.df7$pmvd_pred7 <- ifelse(data.df7$pred7 < 0.5, 0, 1)
+table(data.df7$pmvd_pred7)
+table(data.df7$pmvd, data.df7$pmvd_pred7)
+
+library(Deducer)
+model8= glm(pmvd ~ BA_new, data = data.df7, family = binomial("logit") )
+summary(model8)
+rocplot(model8)
+data.df7$pred8= predict.glm(model8, newdata = data.df7, type = "response")
+data.df7$pmvd_pred8 <- ifelse(data.df7$pred8 < 0.5, 0, 1)
+table(data.df7$pmvd_pred8)
+table(data.df7$pmvd, data.df7$pmvd_pred8)
+
+
+
+
+###########################################
+##########################################
+#########################################
+#
+setwd("/home/anand/Documents/pmvd wise BA scorecard/New Methods/files")
+data2=read.csv("merged.csv")
+data.df1=data.frame(data2)
+library(Deducer)
+model2= glm(pmvd ~ pcswoe + dtiwoe +  aobwoe + crwoe +  cmwoe + arwoe + avgnsfwoe, data = data.df1, family = binomial("logit") )
+summary(model2)
+rocplot(model2)
+
+data.df1$pred_model2= predict.glm(model2, newdata = data.df1, type = "response")
+data.df1$pmvd_predmodel2 <- ifelse(data.df1$pred_model2 < 0.5, 0, 1)
+table(data.df1$pmvd_predmodel2)
+table(data.df1$pmvd, data.df1$pmvd_predmodel2)
+
+##Saving the Model to a file 
+save(file="model2",model2)
+
+
+
+##############################################################Final Comparison##################################
+##############################################################Between PCS and BA new############################
+################################################################################################################
+
+
+setwd("/home/anand/Documents/pmvd wise BA scorecard/New Methods/files")
+data1=read.csv("dataforfinalpcsvsbanew.csv")
+data.df=data.frame(data1)
+names(data.df)
+str(data.df)
+
+##############PCS
+
+library(Deducer)
+modelpcs= glm(pmvd ~ pcsuw, data = data.df, family = binomial("logit") )
+summary(modelpcs)
+rocplot(modelpcs)
+data.df$predpcs= predict.glm(modelpcs, newdata = data.df, type = "response")
+data.df$pmvd_predpcs <- ifelse(data.df$predpcs < 0.5, 0, 1)
+table(data.df$pmvd_predpcs)
+table(data.df$pmvd, data.df$pmvd_predpcs)
+
+
+######################BA new
+
+library(Deducer)
+modelbanew= glm(pmvd ~ BA_new, data = data.df, family = binomial("logit") )
+summary(modelbanew)
+rocplot(modelbanew)
+data.df$predbanew= predict.glm(modelbanew, newdata = data.df, type = "response")
+data.df$pmvd_predbanew <- ifelse(data.df$predbanew < 0.5, 0, 1)
+table(data.df$pmvd_predbanew)
+table(data.df$pmvd, data.df$pmvd_predbanew)
+
+##########################################
+###################Vailidation Set###############
+
+setwd("/home/anand/Documents/pmvd wise BA scorecard/New Methods/files")
+data2=read.csv("vailidationsetmerged.csv")
+data.df2=data.frame(data2)
+names(data.df2)
+str(data.df2)
+
+##############PCS
+
+library(Deducer)
+modelpcsval= glm(pmvd ~ pcsuw, data = data.df2, family = binomial("logit") )
+summary(modelpcsval)
+rocplot(modelpcsval)
+data.df2$predpcsval= predict.glm(modelpcsval, newdata = data.df2, type = "response")
+data.df2$pmvd_predpcsval <- ifelse(data.df2$predpcsval < 0.5, 0, 1)
+table(data.df2$pmvd_predpcsval)
+table(data.df2$pmvd, data.df2$pmvd_predpcsval)
+
+
+######################BA new
+
+library(Deducer)
+modelbanewval= glm(pmvd ~ BA_new, data = data.df2, family = binomial("logit") )
+summary(modelbanewval)
+rocplot(modelbanewval)
+data.df2$predbanewval= predict.glm(modelbanewval, newdata = data.df2, type = "response")
+data.df2$pmvd_predbanewval <- ifelse(data.df2$predbanewval < 0.5, 0, 1)
+table(data.df2$pmvd_predbanewval)
+table(data.df2$pmvd, data.df2$pmvd_predbanewval)
+
+########################DIS##############################
+### Dis for the model results
+setwd("/home/anand/Documents/DBS Risk Scoring/Data for model")
+data1=read.csv("data.csv")
+data.df=data.frame(data1)
+names(data.df)
+str(data.df)
+
+
+library(MASS)
+fit <- lda(RR_cat ~ ebbta + bvoebtl  + wcbta  + rebta , data=data.df, 
+           na.action="na.omit", CV=TRUE)
+fit 
+
+# Assess the accuracy of the prediction
+# percent correct for each category of G
+ct <- table(data.df$RR_cat, fit$class)
+diag(prop.table(ct, 1))
+# total percent correct
+sum(diag(prop.table(ct)))
+table(data.df$RR_cat, fit$class)
+
+plot(fit)
+
+###Quadratic
+
+library(MASS)
+fit1 <- qda(RR_cat ~ ebbta + bvoebtl  + wcbta  + rebta , data=data.df, 
+           na.action="na.omit", CV=TRUE)
+fit1 
+
+table(data.df$RR_cat, fit1$class)
+
+
+lda
+###############################DPDwise###########################
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+data1=read.csv("dataformodel.csv")
+data.df=data.frame(data1)
+names(data.df)
+str(data.df)
+set.seed(123)
+library(DMwR)
+data.df$dpd <- as.factor(data.df$dpd)
+data1smote= SMOTE(dpd ~ ., data.df, perc.over = 200, perc.under=150)
+data1smote$dpd <- as.numeric(data1smote$dpd)
+print(table(data1smote$dpd))
+library(car)
+data1smote$dpd<-recode(data1smote$dpd,"1=0")
+data1smote$dpd<-recode(data1smote$dpd,"2=1")
+names(data1smote)
+###With smote
+library(Deducer)
+model1= glm(dpd ~ pcswoe + dtiwoe +  aobwoe + crwoe +  cmwoe + arwoe + avgnsfwoe, data = data1smote, family = binomial("logit") )
+summary(model1)
+rocplot(model1)
+data1smote$pred= predict.glm(model1, newdata = data1smote, type = "response")
+data1smote$dpd_pred <- ifelse(data1smote$pred < 0.5, 0, 1)
+table(data1smote$dpd_pred)
+table(data1smote$dpd, data1smote$dpd_pred)
+
+##Predicting for the full dataset
+data.df$pred1= predict.glm(model1, newdata = data.df, type = "response")
+data.df$dpd_pred1 <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$dpd_pred1)
+table(data.df$dpd, data.df$dpd_pred1)
+str(data.df)
+
+
+###################################################################
+###Retraining the model for the new logistic with newly calculated woe values for the merged dataset
+###################################################################
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+data4=read.csv("mergeddatawoerecal.csv")
+data.df4=data.frame(data4)
+names(data.df4)
+str(data.df4)
+
+library(Deducer)
+model4= glm(dpd ~ pcswoe1 + dtiwoe1 +  aobwoe1 + crwoe1 +  cmwoe1 + arwoe1 + avgnsfwoe1, data = data.df4, family = binomial("logit") )
+summary(model4)
+rocplot(model4)
+data.df4$pred4= predict.glm(model4, newdata = data.df4, type = "response")
+data.df4$dpd_pred4 <- ifelse(data.df4$pred4 < 0.5, 0, 1)
+table(data.df4$dpd_pred4)
+table(data.df4$dpd, data.df4$dpd_pred4)
+
+
+
+##Saving the Model to a file 
+save(file="model4woe recalculated trained model",model4)
+
+library(xlsx)
+library(ImportExport)
+excel_export(data.df4, file = "mergedwoerecalculated modelscoreddata.xlsx", table_names = "Scoreddata")
+
+
+
+
+
+
+
+
+###Loading new data for scoring 
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+rejecteddata= read.csv("rejectedcases.csv")
+
+##Loading the file
+load(file="model1")
+
+##Scoring New data for the 
+str(rejecteddata)
+rejecteddata$pred3 <- predict(model1, newdata=rejecteddata, type='response')
+typeof(rejecteddata$pred3)
+rejecteddata$pred<-recode(rejecteddata$pred,"NA"== ".")
+summary(rejecteddata$pred3)
+
+rejecteddata$dpd_pred3 = ifelse(rejecteddata$pred3>0.5,1,0)
+table(rejecteddata$dpd_pred3)
+
+###Exporting the Rejected scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(rejecteddata, file = "rejecteddataaobmorethanoreq18m.xlsx", table_names = "RejectData")
+
+###Exporting the funded scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(data.df, file = "fundeddata1.xlsx", table_names = "fundedData")
+
+###Reject inference
+setwd("/home/anand/Documents/DPD wise BA scorecard/Reanalysis/New Data/Working/Binned woe iv/datawithcatandwoevalue")
+merged=read.csv("mergednew.csv")
+merged.df=data.frame(merged)
+names(merged.df)
+
+library(Deducer)
+model3= glm(dpd ~ pcswoe + dtiwoe + aobwoe + crwoe +  cmwoe + avgnsfwoe + arwoe, data = merged.df, family = binomial("logit") )
+summary(model3)
+rocplot(model3)
+merged.df$pred4= predict.glm(model3, newdata = merged.df, type = "response")
+merged.df$dpd_pred4 <- ifelse(merged.df$pred4 < 0.5, 0, 1)
+table(merged.df$dpd_pred4)
+table(merged.df$dpd, merged.df$dpd_pred4)
+
+save(file="model3",model3)
+load(file="model3")
+
+
+
+###Exporting the funded scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(merged.df, file = "mergedscored.xlsx", table_names = "Merged")
+#########################################################################################################################################################################################
+
+######Scoring the Vailidation set######
+setwd("/home/anand/Documents/DPD wise BA scorecard/Reanalysis/New Data/Working/Binned woe iv/datawithcatandwoevalue")
+holdoutfunded= read.csv("holdout funded pcs 640.csv")
+load(file="model3")
+holdoutfunded$pred5= predict.glm(model3, newdata = holdoutfunded, type = "response")
+holdoutfunded$dpd_pred5 <- ifelse(holdoutfunded$pred5 < 0.5, 0, 1)
+table(holdoutfunded$dpd_pred5)
+table(holdoutfunded$dpd, holdoutfunded$dpd_pred5)
+#####Scoring 30% Rejected cases#####
+setwd("/home/anand/Documents/DPD wise BA scorecard/Reanalysis/New Data/Working/Binned woe iv/datawithcatandwoevalue")
+rejected30= read.csv("rejectedpcsscored30.csv")
+load(file="model3")
+rejected30$pred6= predict.glm(model3, newdata = rejected30, type = "response")
+rejected30$dpd_pred6 <- ifelse(rejected30$pred6 < 0.5, 0, 1)
+table(rejected30$dpd_pred6)
+table(rejected30$dpd, rejected30$dpd_pred6)
+
+
+
+
+###########################################
+##########################################
+#########################################
+#
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+data2=read.csv("merged.csv")
+data.df1=data.frame(data2)
+library(Deducer)
+model2= glm(dpd ~ pcswoe + dtiwoe +  aobwoe + crwoe +  cmwoe + arwoe + avgnsfwoe, data = data.df1, family = binomial("logit") )
+summary(model2)
+rocplot(model2)
+
+data.df1$pred_model2= predict.glm(model2, newdata = data.df1, type = "response")
+data.df1$dpd_predmodel2 <- ifelse(data.df1$pred_model2 < 0.5, 0, 1)
+table(data.df1$dpd_predmodel2)
+table(data.df1$dpd, data.df1$dpd_predmodel2)
+
+##Saving the Model to a file 
+save(file="model2",model2)
+
+
+
+##############################################################Final Comparison##################################
+##############################################################Between PCS and BA new############################
+################################################################################################################
+
+
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+data1=read.csv("dataforfinalpcsvsbanew.csv")
+data.df=data.frame(data1)
+names(data.df)
+str(data.df)
+
+##############PCS
+
+library(Deducer)
+modelpcs= glm(dpd ~ pcsuw, data = data.df, family = binomial("logit") )
+summary(modelpcs)
+rocplot(modelpcs)
+data.df$predpcs= predict.glm(modelpcs, newdata = data.df, type = "response")
+data.df$dpd_predpcs <- ifelse(data.df$predpcs < 0.5, 0, 1)
+table(data.df$dpd_predpcs)
+table(data.df$dpd, data.df$dpd_predpcs)
+
+
+######################BA new
+
+library(Deducer)
+modelbanew= glm(dpd ~ BA_new, data = data.df, family = binomial("logit") )
+summary(modelbanew)
+rocplot(modelbanew)
+data.df$predbanew= predict.glm(modelbanew, newdata = data.df, type = "response")
+data.df$dpd_predbanew <- ifelse(data.df$predbanew < 0.5, 0, 1)
+table(data.df$dpd_predbanew)
+table(data.df$dpd, data.df$dpd_predbanew)
+
+##########################################
+###################Vailidation Set###############
+
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+data2=read.csv("vailidationsetmerged.csv")
+data.df2=data.frame(data2)
+names(data.df2)
+str(data.df2)
+
+##############PCS
+
+library(Deducer)
+modelpcsval= glm(dpd ~ pcsuw, data = data.df2, family = binomial("logit") )
+summary(modelpcsval)
+rocplot(modelpcsval)
+data.df2$predpcsval= predict.glm(modelpcsval, newdata = data.df2, type = "response")
+data.df2$dpd_predpcsval <- ifelse(data.df2$predpcsval < 0.5, 0, 1)
+table(data.df2$dpd_predpcsval)
+table(data.df2$dpd, data.df2$dpd_predpcsval)
+
+
+######################BA new
+
+library(Deducer)
+modelbanewval= glm(dpd ~ BA_new, data = data.df2, family = binomial("logit") )
+summary(modelbanewval)
+rocplot(modelbanewval)
+data.df2$predbanewval= predict.glm(modelbanewval, newdata = data.df2, type = "response")
+data.df2$dpd_predbanewval <- ifelse(data.df2$predbanewval < 0.5, 0, 1)
+table(data.df2$dpd_predbanewval)
+table(data.df2$dpd, data.df2$dpd_predbanewval)
+
+#####################DPDagemorethan18#########################
+setwd("/home/anand/Documents/DPD wise BA scorecard/DPD age of business 18 plus")
+data1=read.csv("data.csv")
+data.df=data.frame(data1)
+names(data.df)
+
+
+###datauwba BA_new
+library(Deducer)
+model1= glm(dpd~ pcsuw  , data = data.df , family = binomial("logit") )
+
+summary(model1)
+rocplot(model1)
+data.df$pred1 = predict.glm(model1, data.df, type = c("response"))
+data.df$rr_pred1 <- ifelse(data.df$pred1 < 0.5, 0, 1)
+table(data.df$rr_pred1)
+table(data.df$rr_cat, data.df$rr_pred1)
+
+###datauwba BA_uw
+library(Deducer)
+model2= glm(rr_cat ~ baatuw, data = data.df , family = binomial("logit") )
+data.df$pred2 = predict.glm(model2, data.df, type = c("response"))
+data.df$rr_pred2 <- ifelse(data.df$pred2 < 0.5, 0, 1)
+table(data.df$rr_pred2)
+table(data.df$rr_cat, data.df$rr_pred2)
+
+
+
+##########BA_new
+names(data.df)
+library(Deducer)
+model3= glm(rr_cat ~ Ba_new, data = data.df , family = binomial("logit") )
+
+summary(model3)
+rocplot(model3)
+data.df$pred3 = predict.glm(model3, data.df, type = c("response"))
+data.df$rr_pred3 <- ifelse(data.df$pred3 < 0.5, 0, 1)
+table(data.df$rr_pred3)
+table(data.df$rr_cat, data.df$rr_pred3)
+######################Untitled######################
+setwd("/home/anand/Documents/DPD wise BA scorecard/New Methods/files")
+data3=read.csv("mergedfinal.csv")
+data.df3=data.frame(data3)
+library(Deducer)
+model3= glm(dpd ~ pcswoe + dtiwoe +  aobwoe + crwoe +  cmwoe + arwoe + avgnsfwoe, data = data.df3, family = binomial("logit") )
+summary(model3)
+rocplot(model3)
+
+data.df3$pred_model3= predict.glm(model3, newdata = data.df3, type = "response")
+data.df3$dpd_predmodel3<- ifelse(data.df3$pred_model3 < 0.5, 0, 1)
+table(data.df3$dpd_predmodel3)
+table(data.df3$dpd, data.df3$dpd_predmodel3)
+
+###Exporting the funded scored data 
+library(xlsx)
+library(ImportExport)
+excel_export(data.df3, file = "mergedscoreddatafinal.xlsx", table_names = "Scoreddata")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
